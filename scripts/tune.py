@@ -141,9 +141,14 @@ def train_trial(trial_config: dict, experiment_name: str, metric: str, base_conf
 
     def report_each_epoch(epoch_idx, valid_score):
         # lets Ray's live trial table + Optuna's pruning (if ever enabled)
-        # see progress before the trial finishes, not just its final score
+        # see progress before the trial finishes, not just its final score.
+        # "epoch" is the REAL epoch number -- Ray's own auto "training_iteration"
+        # column only counts how many times report() fired, which undercounts
+        # real epochs by a factor of eval_step (RecBole's callback_fn is only
+        # invoked at eval checkpoints, not every epoch -- a hard constraint of
+        # the stock, unmodified Trainer, not something this script controls).
         log_valid_score(epoch_idx, valid_score)
-        tune.report({metric: valid_score})
+        tune.report({metric: valid_score, "epoch": epoch_idx})
 
     mlflow.set_experiment(experiment_name)
     with mlflow.start_run():
