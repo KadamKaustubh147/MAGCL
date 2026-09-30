@@ -1,0 +1,62 @@
+[project]
+name = "magcl"
+version = "0.1.0"
+description = "Faithful reimplementation of MAGCL (Applied Soft Computing 199 (2026) 115358) on RecBole"
+requires-python = "==3.12.*"
+
+# ---------------------------------------------------------------------------
+# Why these pins (do not loosen them without reading this):
+#
+#   numpy 1.26.4  RecBole 1.2.0 (2022) calls np.float / np.bool / np.int, which
+#                 NumPy deleted in 1.24. RecBole repairs this itself in
+#                 Config.compatibility_settings() by re-assigning them from
+#                 np.float_ / np.bool_ / np.int_ ... but NumPy 2.0 deleted
+#                 np.float_ too, so on NumPy 2.x RecBole's own repair crashes.
+#                 numpy 1.26.4 is the last release where every name RecBole
+#                 touches still exists => RecBole works with NO patching.
+#                 numpy 1.26.4 has no cp313 wheels, hence Python 3.12.
+#
+#   scipy 1.13.1  Chosen for numpy 1.26 compatibility; not pinned for any
+#                 RecBole-specific reason. RecBole's graph builders call
+#                 scipy.sparse.dok_matrix._update, which is gone on every
+#                 SciPy version tested here -- see src/magcl/compat.py for
+#                 the one-line patch (import it before recbole).
+#
+#   torch  cu126  RTX 4050 (driver 580.97). Installed from the PyTorch index
+#                 below; the default PyPI torch wheel on Windows is CPU-only.
+#
+#   kmeans_pytorch  Not declared as a RecBole dependency, but
+#                 recbole.model.general_recommender's __init__.py eagerly
+#                 imports every model in the package (including LDiffRec,
+#                 which we never use) and that import chain needs it.
+# ---------------------------------------------------------------------------
+dependencies = [
+    "numpy==1.26.4",
+    "scipy==1.13.1",
+    "pandas==2.2.3",
+    "torch==2.6.0",
+    "recbole==1.2.0",
+    "kmeans-pytorch>=0.3",
+    "mlflow>=2.19",
+    "ray[tune]>=2.40",
+    "optuna>=4.1",
+    "tqdm>=4.70.1",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu126" }]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/magcl"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

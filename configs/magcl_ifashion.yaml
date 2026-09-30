@@ -1,0 +1,69 @@
+# MAGCL on Alibaba-iFashion. Same protocol as configs/magcl.yaml (§5.1 applies
+# to both datasets identically); only the paper's per-dataset §5.2 values for
+# tau/gamma/alpha differ here, per Figs. 2-4.
+data_path: ./data/
+dataset: Alibaba-iFashion
+
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+load_col:
+    inter: [user_id, item_id]
+
+seed: 2020
+gpu_id: 0
+use_gpu: true
+worker: 0
+
+# §5.1: emb 64, batch 4096, Adam, early stop patience 10 on valid Recall@20
+embedding_size: 64
+train_batch_size: 4096
+eval_batch_size: 4096
+learning_rate: 0.001
+epochs: 300
+
+# Same tuning-speed approximation as configs/magcl.yaml -- see its comment.
+# Revert both to 1 / 10 for final multi-seed numbers.
+eval_step: 5
+stopping_step: 2
+
+# §5.1: random 8:1:1 split, full-ranking eval, Recall/NDCG @ 10,20,50 (Table 2)
+eval_args:
+    split: {RS: [0.8, 0.1, 0.1]}
+    order: RO
+    group_by: user
+    mode: full
+metrics: [Recall, NDCG]
+topk: [10, 20, 50]
+valid_metric: recall@20
+
+# RecBole default: 1 uniform negative per positive
+train_neg_sample_args:
+    distribution: uniform
+    sample_num: 1
+    dynamic: false
+
+# ---- MAGCL hyperparameters (paper symbols, §4-§5.2) ----
+L: 3            # conv layers, best on both datasets (Fig. 5)
+tau: 0.2        # temperature (Eq 23-26), best on Alibaba-iFashion (0.1 on ML-1M)
+gamma: 0.4      # fusion scale (Eq 14), best on Alibaba-iFashion (1.0 on ML-1M)
+alpha: 0.9      # high-order CL weight (Eq 25), best on Alibaba-iFashion (0.7 on ML-1M)
+beta: 0.8       # Jaccard keep threshold (Eq 3); §5.2 states this directly
+S: 5            # top-S per row (Eq 3); §5.2 states this directly
+
+# lam1-4 and theta are meant to be swept per-dataset (see scripts/tune.py) --
+# these defaults are NOT the paper's iFashion values (not reported), but our
+# own best-found ML-1M point (valid recall@20 = 0.2701, 30 trials), used as a
+# warm start since both datasets share the same loss structure. A plain
+# scripts/run.py invocation with no --override uses these as-is; the tuning
+# sweep also seeds its search from this same point (scripts/tune.py's
+# _BOOTSTRAP_POINT) for faster convergence than starting blind.
+lam1: 1.7200622985463543e-08
+lam2: 1.3093479451553977e-07
+lam3: 1.3842362709773063e-07
+lam4: 1.587399573234231e-09
+theta: 0.026286436396035024
+
+# Our one deviation from the literal Eq 23/24/26 text -- confirmed stable and
+# closer to the paper on ML-1M (see configs/magcl.yaml); using the same
+# default here.
+normalize_cl: false

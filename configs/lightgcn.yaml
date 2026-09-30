@@ -1,0 +1,40 @@
+# Stock RecBole LightGCN, same protocol block as magcl.yaml. Purpose: sanity-
+# check the pipeline (data + split + eval) against the paper's own LightGCN
+# baseline (Table 2: Recall@20 0.2796, NDCG@20 0.2620) BEFORE trusting any
+# MAGCL number -- if this doesn't land near 0.28, the bug is in the pipeline,
+# not in model.py.
+data_path: ./data/
+dataset: ml-1m_preprocessed_byrating
+
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+load_col:
+    inter: [user_id, item_id]
+
+seed: 2020
+gpu_id: 0
+use_gpu: true
+worker: 0
+
+embedding_size: 64
+train_batch_size: 4096
+eval_batch_size: 4096
+learning_rate: 0.001
+epochs: 300
+stopping_step: 10
+
+eval_args:
+    split: {RS: [0.8, 0.1, 0.1]}
+    order: RO
+    group_by: user
+    mode: full
+metrics: [Recall, NDCG]
+topk: [10, 20, 50]
+valid_metric: recall@20
+
+train_neg_sample_args:
+    distribution: uniform
+    sample_num: 1
+    dynamic: false
+
+n_layers: 3     # paper uses L=3 everywhere (Fig. 5)
