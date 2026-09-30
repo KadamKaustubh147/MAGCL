@@ -1,0 +1,250 @@
+MAGCL on ML-1M -- Bayesian tuning results (normalize_cl=false, raw/unnormalized CL)
+Search space: lam1,lam2,lam3,lam4 in loguniform(1e-9, 1e-3), theta in uniform(0.02, 0.1)
+Fixed: L=3, tau=0.1, gamma=1.0, alpha=0.7, beta=0.8, S=5, embedding_size=64
+Total finished trials: 30 (rounds 1+2, experiment MAGCL-tuning-ml-1m-raw-cl)
+Sorted by best_valid_recall@20, descending.
+
+Paper (Table 2) reference -- MAGCL on ML-1M:
+  Recall@10=0.2088  NDCG@10=0.2674  Recall@20=0.3084  NDCG@20=0.2819  Recall@50=0.4780  NDCG@50=0.3315
+
+====================================================================================================
+
+#1  best_valid_recall@20 = 0.2701
+    lam1=1.7200622985463543e-08  lam2=1.3093479451553977e-07  lam3=1.3842362709773063e-07  lam4=1.587399573234231e-09  theta=0.026286436396035024
+    valid: recall@10=0.1744  recall@20=0.2701  recall@50=0.4375
+           ndcg@10=0.2113  ndcg@20=0.2321  ndcg@50=0.2846
+    test:  recall@10=0.1968  recall@20=0.2951  recall@50=0.4629
+           ndcg@10=0.2581  ndcg@20=0.2721  ndcg@50=0.3201
+    mlflow run_id: fc00be2f67c14321ba277525ceeb47b8
+
+#2  best_valid_recall@20 = 0.2699
+    lam1=6.678202670336487e-08  lam2=5.424505698355071e-09  lam3=1.3377408456383655e-08  lam4=2.7079385973236003e-08  theta=0.03547677901096197
+    valid: recall@10=0.1751  recall@20=0.2699  recall@50=0.4424
+           ndcg@10=0.2099  ndcg@20=0.2311  ndcg@50=0.2859
+    test:  recall@10=0.1976  recall@20=0.2985  recall@50=0.4673
+           ndcg@10=0.256  ndcg@20=0.2722  ndcg@50=0.3214
+    mlflow run_id: 0a7856d9291a468dbe0b1591eecf28a8
+
+#3  best_valid_recall@20 = 0.2686
+    lam1=4.563646463675213e-08  lam2=1.035278175109082e-09  lam3=1.541731366438733e-08  lam4=1.075713487386787e-09  theta=0.020653867595504867
+    valid: recall@10=0.1704  recall@20=0.2686  recall@50=0.438
+           ndcg@10=0.2073  ndcg@20=0.2292  ndcg@50=0.2828
+    test:  recall@10=0.1956  recall@20=0.2919  recall@50=0.4634
+           ndcg@10=0.2537  ndcg@20=0.2681  ndcg@50=0.3179
+    mlflow run_id: 5f3dee908f6845ff95a2a9c763c6c92e
+
+#4  best_valid_recall@20 = 0.2683
+    lam1=3.348917801725202e-08  lam2=1.6792144079339707e-07  lam3=7.480198575099716e-09  lam4=2.982914898977324e-09  theta=0.022937971546690618
+    valid: recall@10=0.1734  recall@20=0.2683  recall@50=0.4385
+           ndcg@10=0.2088  ndcg@20=0.2299  ndcg@50=0.2837
+    test:  recall@10=0.1942  recall@20=0.2962  recall@50=0.4634
+           ndcg@10=0.2546  ndcg@20=0.2698  ndcg@50=0.3188
+    mlflow run_id: e7595d2f9d204b2bbd520d9807f3da56
+
+#5  best_valid_recall@20 = 0.2681
+    lam1=8.355383181003884e-09  lam2=1.157593026262186e-09  lam3=2.055320844654296e-08  lam4=6.958172971249516e-09  theta=0.038665483414556306
+    valid: recall@10=0.1706  recall@20=0.2681  recall@50=0.4377
+           ndcg@10=0.2084  ndcg@20=0.2302  ndcg@50=0.2833
+    test:  recall@10=0.195  recall@20=0.2942  recall@50=0.4656
+           ndcg@10=0.2562  ndcg@20=0.271  ndcg@50=0.3203
+    mlflow run_id: 582eb032b8704d3fa189c06f74f74775
+
+#6  best_valid_recall@20 = 0.2681
+    lam1=2.749244544041987e-08  lam2=3.3726182746646285e-09  lam3=2.4705033897045315e-07  lam4=7.586570906418549e-09  theta=0.03764786568384135
+    valid: recall@10=0.1719  recall@20=0.2681  recall@50=0.4391
+           ndcg@10=0.2083  ndcg@20=0.2296  ndcg@50=0.2836
+    test:  recall@10=0.1965  recall@20=0.2943  recall@50=0.4662
+           ndcg@10=0.2555  ndcg@20=0.27  ndcg@50=0.3202
+    mlflow run_id: ba06cb2a34414740917f66b1c2be2a47
+
+#7  best_valid_recall@20 = 0.268
+    lam1=2.344372842301536e-08  lam2=5.2864886206763526e-09  lam3=3.6237740697873487e-09  lam4=2.187935522192442e-08  theta=0.043919684252292764
+    valid: recall@10=0.1723  recall@20=0.268  recall@50=0.4393
+           ndcg@10=0.209  ndcg@20=0.2303  ndcg@50=0.2842
+    test:  recall@10=0.1961  recall@20=0.2943  recall@50=0.4639
+           ndcg@10=0.2571  ndcg@20=0.2714  ndcg@50=0.3202
+    mlflow run_id: 37f3d6f7e4024e93b1ab02d286aaa104
+
+#8  best_valid_recall@20 = 0.2678
+    lam1=5.367868529373505e-08  lam2=2.0421036760665234e-09  lam3=3.552890256102574e-08  lam4=6.158361419722236e-08  theta=0.03534134159253727
+    valid: recall@10=0.1729  recall@20=0.2678  recall@50=0.4399
+           ndcg@10=0.2102  ndcg@20=0.2312  ndcg@50=0.2852
+    test:  recall@10=0.1976  recall@20=0.2938  recall@50=0.4628
+           ndcg@10=0.2595  ndcg@20=0.2726  ndcg@50=0.3211
+    mlflow run_id: 376c749366414eeea25092edb783044f
+
+#9  best_valid_recall@20 = 0.2676
+    lam1=1.2270854828158532e-07  lam2=8.146563609372295e-08  lam3=2.7724557069234466e-07  lam4=2.4005471325958923e-09  theta=0.020969872220646623
+    valid: recall@10=0.1706  recall@20=0.2676  recall@50=0.4381
+           ndcg@10=0.2062  ndcg@20=0.2283  ndcg@50=0.2823
+    test:  recall@10=0.1941  recall@20=0.2926  recall@50=0.4604
+           ndcg@10=0.2514  ndcg@20=0.2661  ndcg@50=0.3151
+    mlflow run_id: 337d8d1434154efca0d0778eaaa70af7
+
+#10  best_valid_recall@20 = 0.2673
+    lam1=4.9295851281157534e-08  lam2=4.737840428416505e-08  lam3=1.3735557734159905e-09  lam4=5.931805426318801e-09  theta=0.03724498843397475
+    valid: recall@10=0.1711  recall@20=0.2673  recall@50=0.4363
+           ndcg@10=0.2089  ndcg@20=0.2298  ndcg@50=0.2833
+    test:  recall@10=0.1951  recall@20=0.2928  recall@50=0.4622
+           ndcg@10=0.2563  ndcg@20=0.2698  ndcg@50=0.3187
+    mlflow run_id: 25537b805c1040de8e93b1a453d9ac5b
+
+#11  best_valid_recall@20 = 0.2673
+    lam1=1.8401660523504962e-09  lam2=2.846889685231554e-09  lam3=7.162075571389978e-09  lam4=1.3321566333906706e-09  theta=0.0208960908897594
+    valid: recall@10=0.171  recall@20=0.2673  recall@50=0.4388
+           ndcg@10=0.2078  ndcg@20=0.2294  ndcg@50=0.2834
+    test:  recall@10=0.1965  recall@20=0.296  recall@50=0.4651
+           ndcg@10=0.2543  ndcg@20=0.2698  ndcg@50=0.3191
+    mlflow run_id: 9646c5cb9f57430380fd3e0e406f4747
+
+#12  best_valid_recall@20 = 0.2672
+    lam1=9.800246569525377e-08  lam2=3.984219404871092e-09  lam3=4.220410854972866e-09  lam4=1.852544767033715e-09  theta=0.045565071522337006
+    valid: recall@10=0.1697  recall@20=0.2672  recall@50=0.4365
+           ndcg@10=0.2051  ndcg@20=0.2275  ndcg@50=0.2812
+    test:  recall@10=0.1943  recall@20=0.2927  recall@50=0.46
+           ndcg@10=0.2521  ndcg@20=0.2677  ndcg@50=0.3163
+    mlflow run_id: f3da954071564ab28e4da43661e15211
+
+#13  best_valid_recall@20 = 0.2669
+    lam1=1.3877650837860934e-07  lam2=5.121283134323064e-09  lam3=4.341468177035567e-08  lam4=2.0845663665693145e-09  theta=0.025363045987467733
+    valid: recall@10=0.1681  recall@20=0.2669  recall@50=0.4374
+           ndcg@10=0.2033  ndcg@20=0.2262  ndcg@50=0.2803
+    test:  recall@10=0.1941  recall@20=0.2926  recall@50=0.4607
+           ndcg@10=0.2504  ndcg@20=0.2661  ndcg@50=0.3151
+    mlflow run_id: 1b2be12db8c74c2399e6653634f324a6
+
+#14  best_valid_recall@20 = 0.2659
+    lam1=4.550505762995866e-09  lam2=2.002348885258175e-09  lam3=1.3909944301015156e-09  lam4=1.6938412713605437e-09  theta=0.03821812666934705
+    valid: recall@10=0.1697  recall@20=0.2659  recall@50=0.436
+           ndcg@10=0.2079  ndcg@20=0.2294  ndcg@50=0.2829
+    test:  recall@10=0.1938  recall@20=0.2926  recall@50=0.4627
+           ndcg@10=0.2568  ndcg@20=0.2707  ndcg@50=0.3194
+    mlflow run_id: f29e715456904cdc886d1d30dd03ceed
+
+#15  best_valid_recall@20 = 0.2656
+    lam1=2.5906594376764437e-09  lam2=1.011872862418155e-09  lam3=8.661824628068513e-09  lam4=3.809739518517097e-08  theta=0.025216000265998663
+    valid: recall@10=0.1703  recall@20=0.2656  recall@50=0.4354
+           ndcg@10=0.2092  ndcg@20=0.2305  ndcg@50=0.2837
+    test:  recall@10=0.1938  recall@20=0.2919  recall@50=0.462
+           ndcg@10=0.2581  ndcg@20=0.2714  ndcg@50=0.3202
+    mlflow run_id: b2e1c88af65f4d6eb5d904e3d52dee83
+
+#16  best_valid_recall@20 = 0.2653
+    lam1=2.523138815786973e-09  lam2=9.87817273162569e-09  lam3=1.195698367546187e-07  lam4=1.828711223451954e-09  theta=0.028320303352328487
+    valid: recall@10=0.1696  recall@20=0.2653  recall@50=0.4337
+           ndcg@10=0.2067  ndcg@20=0.2278  ndcg@50=0.2811
+    test:  recall@10=0.1932  recall@20=0.292  recall@50=0.4601
+           ndcg@10=0.2537  ndcg@20=0.2676  ndcg@50=0.3165
+    mlflow run_id: 750741861b4e454c8bb33de1e7c9be1b
+
+#17  best_valid_recall@20 = 0.2613
+    lam1=1.936997779581086e-09  lam2=5.782169810896489e-09  lam3=1.4064491775398225e-09  lam4=2.3179029582741033e-09  theta=0.04927434187953818
+    valid: recall@10=0.1664  recall@20=0.2613  recall@50=0.4273
+           ndcg@10=0.2034  ndcg@20=0.2248  ndcg@50=0.2767
+    test:  recall@10=0.1897  recall@20=0.2856  recall@50=0.4549
+           ndcg@10=0.253  ndcg@20=0.266  ndcg@50=0.3143
+    mlflow run_id: 97c7441ac3764eee96160a2aeb1b5573
+
+#18  best_valid_recall@20 = 0.2372
+    lam1=8.71192439660354e-06  lam2=6.905302863663373e-09  lam3=3.5731642336789886e-08  lam4=1.0970760157694045e-08  theta=0.08278429982275738
+    valid: recall@10=0.1525  recall@20=0.2372  recall@50=0.389
+           ndcg@10=0.1824  ndcg@20=0.2017  ndcg@50=0.2506
+    test:  recall@10=0.169  recall@20=0.2573  recall@50=0.412
+           ndcg@10=0.2195  ndcg@20=0.2336  ndcg@50=0.2791
+    mlflow run_id: a79a6da7b6474992b7ce8868b396e101
+
+#19  best_valid_recall@20 = 0.2291
+    lam1=6.796459710546474e-08  lam2=1.4532903337742143e-06  lam3=5.970028086931541e-09  lam4=3.0459707684376183e-08  theta=0.08476602907532584
+    valid: recall@10=0.1443  recall@20=0.2291  recall@50=0.3824
+           ndcg@10=0.1776  ndcg@20=0.1961  ndcg@50=0.2444
+    test:  recall@10=0.1619  recall@20=0.2479  recall@50=0.405
+           ndcg@10=0.2178  ndcg@20=0.2293  ndcg@50=0.2741
+    mlflow run_id: 8d53acb8adc643e9ae86186cbb3f0b95
+
+#20  best_valid_recall@20 = 0.2164
+    lam1=0.00019910650009958251  lam2=2.417890740258428e-09  lam3=9.749146231280184e-09  lam4=1.6185064560379425e-08  theta=0.06338184576582204
+    valid: recall@10=0.1337  recall@20=0.2164  recall@50=0.3551
+           ndcg@10=0.1567  ndcg@20=0.178  ndcg@50=0.2232
+    test:  recall@10=0.1495  recall@20=0.2299  recall@50=0.3732
+           ndcg@10=0.1846  ndcg@20=0.2007  ndcg@50=0.2449
+    mlflow run_id: daee73f7f4a2482e83286181574cd0aa
+
+#21  best_valid_recall@20 = 0.2151
+    lam1=1.2350163917646567e-05  lam2=2.337871249798044e-06  lam3=1.5040287228863266e-07  lam4=3.12593391847504e-09  theta=0.025241827738307538
+    valid: recall@10=0.1374  recall@20=0.2151  recall@50=0.3577
+           ndcg@10=0.1733  ndcg@20=0.1898  ndcg@50=0.2352
+    test:  recall@10=0.1543  recall@20=0.2351  recall@50=0.3774
+           ndcg@10=0.2083  ndcg@20=0.2196  ndcg@50=0.2609
+    mlflow run_id: 381a5bad3bdd410699275d9f8baffa8e
+
+#22  best_valid_recall@20 = 0.2114
+    lam1=0.00022686798470490514  lam2=4.722963138915884e-06  lam3=6.980922433312784e-07  lam4=2.172967130260071e-06  theta=0.09958756456834247
+    valid: recall@10=0.1341  recall@20=0.2114  recall@50=0.3516
+           ndcg@10=0.1585  ndcg@20=0.1764  ndcg@50=0.2221
+    test:  recall@10=0.146  recall@20=0.2295  recall@50=0.3675
+           ndcg@10=0.1828  ndcg@20=0.1994  ndcg@50=0.2417
+    mlflow run_id: 78db8b03161d4226a3772241ccd9fae8
+
+#23  best_valid_recall@20 = 0.2042
+    lam1=0.0004917858324912809  lam2=0.0003842160899683683  lam3=2.6730236328225903e-05  lam4=8.002081815001958e-08  theta=0.09513292008791002
+    valid: recall@10=0.1315  recall@20=0.2042  recall@50=0.3291
+           ndcg@10=0.155  ndcg@20=0.1722  ndcg@50=0.2137
+    test:  recall@10=0.1462  recall@20=0.219  recall@50=0.3476
+           ndcg@10=0.1816  ndcg@20=0.1951  ndcg@50=0.2348
+    mlflow run_id: 09ba4f0656be499799e1b795ed8ddb94
+
+#24  best_valid_recall@20 = 0.2038
+    lam1=0.0007700384105102173  lam2=2.432327026513661e-09  lam3=7.932352773857471e-05  lam4=0.00015260935373966725  theta=0.07472372672294743
+    valid: recall@10=0.1305  recall@20=0.2038  recall@50=0.3368
+           ndcg@10=0.1516  ndcg@20=0.1691  ndcg@50=0.2122
+    test:  recall@10=0.1438  recall@20=0.2194  recall@50=0.3492
+           ndcg@10=0.1753  ndcg@20=0.1905  ndcg@50=0.2316
+    mlflow run_id: 566f26656d57416bb684ec6b78bbd4f3
+
+#25  best_valid_recall@20 = 0.2016
+    lam1=0.00011057407645417124  lam2=2.281901052203195e-08  lam3=1.628131616294715e-08  lam4=4.440504926430336e-05  theta=0.03309411435090931
+    valid: recall@10=0.1288  recall@20=0.2016  recall@50=0.3312
+           ndcg@10=0.1556  ndcg@20=0.1719  ndcg@50=0.2138
+    test:  recall@10=0.1429  recall@20=0.2156  recall@50=0.3484
+           ndcg@10=0.1823  ndcg@20=0.194  ndcg@50=0.2342
+    mlflow run_id: ddea27c79383483f90e8756c30253293
+
+#26  best_valid_recall@20 = 0.1852
+    lam1=6.790722904520895e-06  lam2=4.255658849346084e-06  lam3=3.4184283971016676e-09  lam4=7.286523323895238e-07  theta=0.039542448657319235
+    valid: recall@10=0.1168  recall@20=0.1852  recall@50=0.3154
+           ndcg@10=0.1519  ndcg@20=0.1658  ndcg@50=0.207
+    test:  recall@10=0.1292  recall@20=0.1999  recall@50=0.3348
+           ndcg@10=0.182  ndcg@20=0.1914  ndcg@50=0.2304
+    mlflow run_id: 3b8c18e7dbd74f49a2444b1b401fd845
+
+#27  best_valid_recall@20 = 0.1776
+    lam1=6.744423551763392e-07  lam2=0.0001597425469878187  lam3=8.129190030509884e-07  lam4=8.053629417982464e-08  theta=0.059434612518545316
+    valid: recall@10=0.1125  recall@20=0.1776  recall@50=0.3056
+           ndcg@10=0.1491  ndcg@20=0.1622  ndcg@50=0.2016
+    test:  recall@10=0.1269  recall@20=0.1929  recall@50=0.3207
+           ndcg@10=0.184  ndcg@20=0.1907  ndcg@50=0.2256
+    mlflow run_id: da10f7de3e6e42d8a6b28f37c743ad30
+
+#28  best_valid_recall@20 = 0.1764
+    lam1=1.1121943036700243e-07  lam2=1.0568906565878178e-06  lam3=5.4220865575255486e-05  lam4=1.6180531418776078e-05  theta=0.031887378705973975
+    valid: recall@10=0.1066  recall@20=0.1764  recall@50=0.3129
+           ndcg@10=0.1428  ndcg@20=0.1569  ndcg@50=0.1992
+    test:  recall@10=0.1213  recall@20=0.1923  recall@50=0.3308
+           ndcg@10=0.1771  ndcg@20=0.1844  ndcg@50=0.223
+    mlflow run_id: fec600ba3f02494284f4d4b2813d5e79
+
+#29  best_valid_recall@20 = 0.1276
+    lam1=7.347793087096318e-09  lam2=1.5567081883445631e-09  lam3=3.576995304627068e-05  lam4=1.533352747457868e-05  theta=0.06276389805915505
+    valid: recall@10=0.0778  recall@20=0.1276  recall@50=0.2262
+           ndcg@10=0.1065  ndcg@20=0.1155  ndcg@50=0.1448
+    test:  recall@10=0.085  recall@20=0.1332  recall@50=0.2321
+           ndcg@10=0.1277  ndcg@20=0.1305  ndcg@50=0.157
+    mlflow run_id: f7d4fda3e0164a2998c13a8c5847c624
+
+#30  best_valid_recall@20 = 0.1153
+    lam1=1.2368087730363552e-06  lam2=2.1166705905835323e-08  lam3=6.288379417953326e-07  lam4=0.0001532298465333812  theta=0.0630351379164448
+    valid: recall@10=0.0703  recall@20=0.1153  recall@50=0.2111
+           ndcg@10=0.0921  ndcg@20=0.1005  ndcg@50=0.1283
+    test:  recall@10=0.0764  recall@20=0.1223  recall@50=0.2149
+           ndcg@10=0.1063  ndcg@20=0.1115  ndcg@50=0.1364
+    mlflow run_id: 47172e9562e9416398ca703132ffb2b8

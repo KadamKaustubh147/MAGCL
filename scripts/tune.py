@@ -177,6 +177,11 @@ def main():
     parser.add_argument("--ray-memory-mb", type=int, default=300,
                          help="Ray's own task/actor memory accounting (soft, not an OS-enforced cap)")
     args = parser.parse_args()
+    # Absolute, for the same reason _DATA_PATH is absolute: Ray chdirs every
+    # trial into its own working directory before running it, so a relative
+    # --config path resolves fine here (before any chdir) but breaks inside
+    # every actual trial.
+    args.config = str(Path(args.config).resolve())
 
     base_config = Config(model=MAGCL, config_file_list=[args.config])
     dataset_name, metric = base_config["dataset"], base_config["valid_metric"]
