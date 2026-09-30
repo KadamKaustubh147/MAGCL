@@ -74,6 +74,20 @@ class MAGCL(GeneralRecommender):
         self.register_buffer("A_dn", to_torch_sparse(A_dn))
         self.logger.info(f"MAGCL: denoised graph kept {keep_ratio:.1%} of edges (theta={self.theta})")
 
+        # Full-sort eval calls full_sort_predict() once PER BATCH (RecBole's own
+        # dataloader chunking), but forward() -- the whole L-layer graph
+        # propagation -- doesn't depend on which users are in that batch, so
+        # recomputing it every batch is pure waste. Cached here and reused for
+        # the rest of one eval pass; invalidated in calculate_loss() since
+        # training changes E0. Registered via other_parameter_name (RecBole's
+        # own mechanism, same as LightGCN's restore_user_e/restore_item_e) so a
+        # checkpoint reload for the final test evaluation restores the cache
+        # consistent with the reloaded E0 -- without this, a naive plain-
+        # attribute cache would silently keep stale embeddings from whichever
+        # epoch trained last, not the best epoch the checkpoint reloads to.
+        self.restore_e = None
+        self.other_parameter_name = ["restore_e"]
+
     def _fusion_weight(self, z_ui: torch.Tensor, z_hi: torch.Tensor, layer: int) -> torch.Tensor:
         """Eq (14): eta_x = gamma / (c(z_ui_x, z_hi_x) * d_x + l)."""
         cos = F.cosine_similarity(z_ui, z_hi, dim=1)
@@ -190,6 +204,9 @@ class MAGCL(GeneralRecommender):
         element separately (train_loss1, train_loss2, ... in the epoch line and
         TensorBoard/MLflow). Returning a total alongside the parts would double
         count everything once summed."""
+        if self.restore_e is not None:  # training changes E0 -- invalidate the eval cache
+            self.restore_e = None
+
         u = interaction[self.USER_ID]
         i = interaction[self.ITEM_ID] + self.n_users
         j = interaction[self.NEG_ITEM_ID] + self.n_users
@@ -211,7 +228,13 @@ class MAGCL(GeneralRecommender):
         return (e[u] * e[i]).sum(dim=1)
 
     def full_sort_predict(self, interaction) -> torch.Tensor:
-        """Eq (18) scored against every item at once (RecBole excludes train-seen items itself)."""
+        """Eq (18) scored against every item at once (RecBole excludes train-seen items itself).
+
+        Cached across calls within one evaluation pass -- see self.restore_e's
+        comment in __init__. Matches RecBole's own LightGCN convention exactly
+        (predict() stays uncached there too; only full_sort_predict benefits,
+        since that's the one called once per eval batch)."""
+        if self.restore_e is None:
+            self.restore_e, _, _, _ = self.forward()
         u = interaction[self.USER_ID]
-        e, _, _, _ = self.forward()
-        return e[u] @ e[self.n_users:].T
+        return self.restore_e[u] @ self.restore_e[self.n_users:].T
