@@ -101,3 +101,111 @@ sets — 30,700 edges on the P side, 18,912 on the Q side, zero differences.
 
 GPU memory after the fix: 421.6 MB (previously OOM'd on a 6 GB card, because
 the tensors being moved to GPU were far larger than they needed to be).
+
+---
+
+# `full_sort_predict` recomputing `forward()` every eval batch
+
+## Where
+
+`full_sort_predict()` in [src/magcl/model.py](src/magcl/model.py).
+
+## The problem
+
+RecBole calls `full_sort_predict()` once per evaluation batch, but `forward()`
+-- the whole L-layer graph propagation over all three graphs -- doesn't depend
+on which users are in that particular batch. The original code called
+`self.forward()` unconditionally on every invocation, recomputing the entire
+propagation from scratch every batch instead of once per evaluation pass.
+
+## The fix
+
+Cache the result across calls within one evaluation pass, invalidated inside
+`calculate_loss()` (called every training step, since training changes `E0`).
+Implemented via `other_parameter_name = ["restore_e"]`, exactly matching
+RecBole's own official `LightGCN` (`restore_user_e`/`restore_item_e`) --
+this is RecBole's own mechanism for persisting plain (non-`nn.Parameter`)
+attributes through checkpoint save/load. That detail matters: without it, the
+cache would silently survive a checkpoint reload for final test evaluation
+inconsistent with the reloaded `E0` -- a correctness bug, not just a
+performance one -- whenever early stopping doesn't trigger on the literal
+last epoch.
+
+## Result
+
+Measured on ML-1M: full-sort eval **103s -> 5.7s** (18x). Verified the smoke
+test still produces finite losses/gradients afterward.
+
+---
+
+# `eval_batch_size` silently flooring to 1 user per eval step
+
+## Where
+
+Not our code at all -- a RecBole config value (`eval_batch_size` in every
+`configs/*.yaml`) being misunderstood. The actual behaviour lives in
+`FullSortEvalDataLoader._init_batch_size_and_step` (RecBole's own
+`recbole/data/dataloader/general_dataloader.py`):
+
+```python
+batch_num = max(batch_size // self._dataset.item_num, 1)
+```
+
+## The problem
+
+`eval_batch_size` is not "users per batch" -- it's a budget on total
+score-matrix cells, and RecBole derives `users_per_step = eval_batch_size //
+n_items` from it. Our configs used the common default `eval_batch_size:
+4096`. For ML-1M (`n_items=3629`), `4096 // 3629 = 1`. For Alibaba-iFashion
+(`n_items=81615`), `4096 // 81615 = 0`, floored to the minimum of `1`.
+**Both datasets were silently evaluating exactly one user per eval step**,
+regardless of the configured batch size.
+
+This is invisible at ML-1M's scale: ~6,040 single-user steps is cheap, and
+was already masked by the `full_sort_predict` caching fix above (103s ->
+5.7s looked like a full fix, but a real bottleneck was still hiding
+underneath, just small enough not to matter yet). At Alibaba-iFashion's
+scale, ~300,001 single-user steps meant RecBole's own per-step result
+accumulator (`Collector.eval_batch_collect` -> `DataStruct.update_tensor`,
+which does `torch.cat((accumulated_so_far, new_batch))` -- a growing
+re-copy -- **on every single step**) became quadratic in the number of
+users. Confirmed directly: `len(valid_data)` (the real number of eval
+iterations, not a batch count) was **271,235** at the default setting.
+Measured full-sort eval time at that setting: **14,176.5s (3.94 hours)**,
+even with the `full_sort_predict` caching fix already applied.
+
+## The fix
+
+Raise `eval_batch_size` well above `n_items` so multiple users batch
+together per step:
+
+- ML-1M: `4096000` (~1,128 users/step)
+- Alibaba-iFashion: `40000000` (~490 users/step; verified via
+  `valid_data.step` and `len(valid_data)` before committing to a full timed
+  run)
+
+Purely a config change -- no code touched, no equations changed, no
+deviation from "stock RecBole."
+
+## Why it's not an approximation
+
+Batching users together for full-sort scoring doesn't change which items get
+scored, masked, or ranked for any individual user -- it's the same
+computation, just grouped. Verified: metrics before/after (recall@10/20/50,
+ndcg@10/20/50) matched to within float-accumulation-order noise
+(e.g. recall@20 0.0284 -> 0.0288 -- the kind of tiny non-determinism expected
+from batched vs. per-row floating-point operations, not a sign of a
+different computation).
+
+## Result
+
+| | eval_batch_size=4096 (default) | eval_batch_size=40000000 (fixed) |
+|---|---|---|
+| Eval steps | 271,235 | 554 |
+| Full-sort eval time (Alibaba-iFashion) | 14,176.5s (3.94 hours) | **43.7s** |
+
+**324x speedup**, on top of the 18x from the `full_sort_predict` caching fix.
+Combined, this is why `eval_step`/`stopping_step` no longer need the
+`5`/`2` tuning-speed approximation documented in `configs/*.yaml` -- both
+configs now use the paper's literal `eval_step: 1` / `stopping_step: 10`
+again, since full-sort eval is fast enough on its own merits.

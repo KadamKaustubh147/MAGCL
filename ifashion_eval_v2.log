@@ -5,3 +5,8 @@ For example, when doing 'df[col].method(value, inplace=True)', try using 'df.met
 
 
   feat[field].fillna(value=0, inplace=True)
+C:\dev_stuff\MAGCL_claude\.venv\Lib\site-packages\recbole\trainer\trainer.py:235: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = amp.GradScaler(enabled=self.enable_scaler)
+train epoch: 213.4s
+valid full-sort eval (WITH caching fix): 14176.5s
+OrderedDict({'recall@10': 0.017, 'recall@20': 0.0284, 'recall@50': 0.055, 'ndcg@10': 0.0088, 'ndcg@20': 0.0117, 'ndcg@50': 0.0169})

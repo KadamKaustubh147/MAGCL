@@ -17,14 +17,22 @@ worker: 0
 # §5.1: emb 64, batch 4096, Adam, early stop patience 10 on valid Recall@20
 embedding_size: 64
 train_batch_size: 4096
-eval_batch_size: 4096
+# NOT "users per eval batch" -- see configs/magcl.yaml's comment on this same
+# key for the full explanation. At the literal default (4096), Alibaba-
+# iFashion's n_items=81615 silently floors this to 1 user/eval-step, which
+# measured out to a 3.94-HOUR full-sort validation pass (RecBole's own
+# per-step result accumulator is quadratic in the number of eval steps) --
+# see optimisation.md. This value gives ~490 users/step, confirmed by direct
+# measurement to bring that same eval down to 43.7s.
+eval_batch_size: 40000000
 learning_rate: 0.001
 epochs: 300
 
-# Same tuning-speed approximation as configs/magcl.yaml -- see its comment.
-# Revert both to 1 / 10 for final multi-seed numbers.
-eval_step: 5
-stopping_step: 2
+# §5.1: early stop patience 10 on valid Recall@20, checked every epoch --
+# literal, no approximation needed now that eval_batch_size above makes
+# full-sort eval fast rather than merely fixed-frequency.
+eval_step: 1
+stopping_step: 10
 
 # §5.1: random 8:1:1 split, full-ranking eval, Recall/NDCG @ 10,20,50 (Table 2)
 eval_args:
@@ -52,11 +60,14 @@ S: 5            # top-S per row (Eq 3); §5.2 states this directly
 
 # lam1-4 and theta are meant to be swept per-dataset (see scripts/tune.py) --
 # these defaults are NOT the paper's iFashion values (not reported), but our
-# own best-found ML-1M point (valid recall@20 = 0.2701, 30 trials), used as a
-# warm start since both datasets share the same loss structure. A plain
-# scripts/run.py invocation with no --override uses these as-is; the tuning
-# sweep also seeds its search from this same point (scripts/tune.py's
-# _BOOTSTRAP_POINT) for faster convergence than starting blind.
+# own best-found ML-1M point (valid recall@20 = 0.2701, 30 trials), used ONLY
+# as this config's static default (e.g. for a plain scripts/run.py invocation
+# with no --override). scripts/tune.py's Bayesian search does NOT seed from
+# this point -- a reward measured on ML-1M isn't on the same scale as
+# iFashion's (far sparser, paper's own Table 2 puts iFashion's recall@20
+# around 0.07 vs. ML-1M's ~0.27-0.31), so seeding with that reward would
+# miscalibrate Optuna's sampler rather than help it (see _load_seed_points'
+# docstring in scripts/tune.py). The search explores this dataset blind.
 lam1: 1.7200622985463543e-08
 lam2: 1.3093479451553977e-07
 lam3: 1.3842362709773063e-07

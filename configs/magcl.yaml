@@ -17,19 +17,27 @@ worker: 0
 # §5.1: emb 64, batch 4096, Adam, early stop patience 10 on valid Recall@20
 embedding_size: 64
 train_batch_size: 4096
-eval_batch_size: 4096
+# NOT "users per eval batch" -- RecBole's FullSortEvalDataLoader computes
+# users_per_step = eval_batch_size // n_items (_init_batch_size_and_step in
+# recbole/data/dataloader/general_dataloader.py), so this must comfortably
+# exceed n_items or it silently floors to 1 user/step. At the literal default
+# (4096) that's exactly what happens here (n_items=3629), forcing ~6000
+# single-user eval steps and making RecBole's own per-step result accumulator
+# (DataStruct.update_tensor, a growing torch.cat every step) quadratic in the
+# number of users. Invisible at ML-1M's size (measured full-sort eval: 5.7s)
+# but confirmed to cost full-sort eval 3.94 HOURS on Alibaba-iFashion before
+# this was raised (see optimisation.md) -- fixed there via the same fix,
+# raised here too since the same silent floor-to-1 applies regardless of
+# dataset size. ~1100 users/step at this value.
+eval_batch_size: 4096000
 learning_rate: 0.001
 epochs: 300
 
-# Full-sort valid eval measured at 103s/call vs. 36s/train-epoch (74% of epoch
-# cost) -- eval_step 5 + stopping_step 2 keeps the SAME 10-epoch patience
-# window as the paper (2 checks x 5 epochs = 10), just checked less often, for
-# ~2x faster tuning trials. Documented approximation, same spirit as
-# normalize_cl below: the "best" checkpoint is now the best of every 5th
-# epoch, not a true every-epoch peak. Revert both to 1 / 10 for the final
-# multi-seed numbers we actually report.
-eval_step: 5
-stopping_step: 2
+# §5.1: early stop patience 10 on valid Recall@20, checked every epoch --
+# literal, no approximation needed now that eval_batch_size above makes
+# full-sort eval fast rather than merely fixed-frequency.
+eval_step: 1
+stopping_step: 10
 
 # §5.1: random 8:1:1 split, full-ranking eval, Recall/NDCG @ 10,20,50 (Table 2)
 eval_args:
