@@ -1,0 +1,108 @@
+{
+  "users": 6039,
+  "items": 3628,
+  "interactions": 836478,
+  "density": 0.038178794834677135,
+  "clusters": 8,
+  "fraction_of_interactions_inside_a_cluster": 0.3147219651921509,
+  "user_degree": {
+    "mean": 138.51266479492188,
+    "median": 81.0,
+    "max": 1968.0
+  },
+  "item_degree": {
+    "mean": 230.56173706054688,
+    "median": 87.0,
+    "max": 3211.0
+  },
+  "per_cluster": [
+    {
+      "cluster": 0,
+      "users": 680,
+      "items": 286,
+      "edges_inside": 26818,
+      "edges_leaving": 140440
+    },
+    {
+      "cluster": 1,
+      "users": 826,
+      "items": 601,
+      "edges_inside": 43241,
+      "edges_leaving": 139002
+    },
+    {
+      "cluster": 2,
+      "users": 1271,
+      "items": 348,
+      "edges_inside": 52453,
+      "edges_leaving": 266586
+    },
+    {
+      "cluster": 3,
+      "users": 939,
+      "items": 883,
+      "edges_inside": 56733,
+      "edges_leaving": 201244
+    },
+    {
+      "cluster": 4,
+      "users": 325,
+      "items": 341,
+      "edges_inside": 11476,
+      "edges_leaving": 74189
+    },
+    {
+      "cluster": 5,
+      "users": 1258,
+      "items": 492,
+      "edges_inside": 38938,
+      "edges_leaving": 157691
+    },
+    {
+      "cluster": 6,
+      "users": 232,
+      "items": 297,
+      "edges_inside": 7570,
+      "edges_leaving": 42875
+    },
+    {
+      "cluster": 7,
+      "users": 508,
+      "items": 380,
+      "edges_inside": 26029,
+      "edges_leaving": 124413
+    }
+  ],
+  "user_user": {
+    "nodes": 6039,
+    "frac_pairs_with_any_overlap": 0.9400572880011843,
+    "mean_overlap_over_all_pairs_same_cluster": 25.1190051023124,
+    "mean_overlap_over_all_pairs_different_cluster": 16.51395126173599,
+    "pairs_jaccard_ge_beta": 0,
+    "nodes_with_a_partner_jaccard_ge_beta": 0.0,
+    "nodes_with_no_overlap_at_all": 0,
+    "max_jaccard_per_node_pctiles_5_25_50_75_95": [
+      0.159,
+      0.212,
+      0.251,
+      0.302,
+      0.38
+    ]
+  },
+  "item_item": {
+    "nodes": 3628,
+    "frac_pairs_with_any_overlap": 0.7663581572604583,
+    "mean_overlap_over_all_pairs_same_cluster": 26.36711103838402,
+    "mean_overlap_over_all_pairs_different_cluster": 18.837851320491215,
+    "pairs_jaccard_ge_beta": 140,
+    "nodes_with_a_partner_jaccard_ge_beta": 0.009922822491730982,
+    "nodes_with_no_overlap_at_all": 0,
+    "max_jaccard_per_node_pctiles_5_25_50_75_95": [
+      0.1,
+      0.147,
+      0.2,
+      0.284,
+      0.483
+    ]
+  }
+}
