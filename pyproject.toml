@@ -24,6 +24,12 @@ requires-python = "==3.12.*"
 #
 #   torch  cu126  RTX 4050 (driver 580.97). Installed from the PyTorch index
 #                 below; the default PyPI torch wheel on Windows is CPU-only.
+#                 Windows ONLY (see [tool.uv.sources]): the Windows +cu126 wheel
+#                 bundles its CUDA libs, but the Linux one needs separate
+#                 nvidia-* packages that this index does not declare, so a Linux
+#                 install failed with "libcudart.so.12 not found". On Linux uv
+#                 takes the default PyPI torch 2.6.0 wheel (CUDA-enabled, with
+#                 the nvidia-* packages as normal dependencies).
 #
 #   kmeans_pytorch  Not declared as a RecBole dependency, but
 #                 recbole.model.general_recommender's __init__.py eagerly
@@ -52,7 +58,7 @@ url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [tool.uv.sources]
-torch = [{ index = "pytorch-cu126" }]
+torch = [{ index = "pytorch-cu126", marker = "sys_platform == 'win32'" }]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/magcl"]
