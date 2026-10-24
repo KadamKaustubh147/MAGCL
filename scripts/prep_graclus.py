@@ -37,11 +37,11 @@ from recbole.utils import init_seed  # noqa: E402
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--config", default="configs/magcl.yaml")
+    ap.add_argument("--config", nargs="+", default=["configs/magcl.yaml"], help="one or more configs, later ones override")
     ap.add_argument("--out", default=str(ROOT / "outputs" / "graclus"))
     args = ap.parse_args()
 
-    config = Config(model=MAGCL, config_file_list=[args.config])
+    config = Config(model=MAGCL, config_file_list=args.config)
     init_seed(config["seed"], config["reproducibility"])
     dataset = create_dataset(config)
     train_data, _, _ = data_preparation(config, dataset)

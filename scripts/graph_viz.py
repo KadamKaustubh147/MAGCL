@@ -44,11 +44,15 @@ def read_graph(path: Path, n_users: int) -> sp.csr_matrix:
     return R
 
 
-def side_stats(R: sp.csr_matrix, labels: np.ndarray, chunk: int = 400) -> dict:
+def side_stats(R: sp.csr_matrix, labels: np.ndarray, rows: np.ndarray | None = None) -> dict:
     """Co-occurrence/Jaccard stats for the ROWS of R (pass R.T for the other side),
     self-pairs and zero-overlap pairs excluded as in graphs._jaccard_side. `labels` are
-    Graclus clusters of these rows, used for the within- vs across-cluster comparison."""
+    Graclus clusters of these rows, used for the within- vs across-cluster comparison.
+    `rows` = a sample of row ids to evaluate (each still compared against ALL rows); None = all.
+    Needed at iFashion scale (300k users): the full k x k pass would take hours."""
     k = R.shape[0]
+    rows = np.arange(k) if rows is None else rows
+    chunk = max(50, min(400, int(3e7 // k)))               # keep the dense chunk x k block ~240 MB
     deg = np.asarray(R.sum(axis=1)).ravel()
     Rt = R.T.tocsc()
     edges = np.linspace(0, np.log10(max(deg.max(), 2)), 61)
@@ -56,17 +60,18 @@ def side_stats(R: sp.csr_matrix, labels: np.ndarray, chunk: int = 400) -> dict:
     n_pairs = n_beta = 0
     sum_in = sum_out = 0.0
     pairs_in = pairs_out = 0
-    max_jac = np.zeros(k)
-    for s in range(0, k, chunk):
-        e = min(s + chunk, k)
-        inter = (R[s:e] @ Rt).toarray()
-        inter[np.arange(e - s), np.arange(s, e)] = 0
-        jac = np.where(inter > 0, inter / (deg[s:e, None] + deg[None, :] - inter), 0.0)
-        same = labels[s:e, None] == labels[None, :]
-        same[np.arange(e - s), np.arange(s, e)] = False
-        diff = labels[s:e, None] != labels[None, :]
-        sum_in += inter[same].sum(); pairs_in += same.sum()
-        sum_out += inter[diff].sum(); pairs_out += diff.sum()
+    max_jac = np.zeros(len(rows))
+    for s in range(0, len(rows), chunk):
+        r = rows[s:s + chunk]
+        e, ar = s + len(r), np.arange(len(r))
+        inter = (R[r] @ Rt).toarray()
+        inter[ar, r] = 0
+        jac = np.where(inter > 0, inter / (deg[r, None] + deg[None, :] - inter), 0.0)
+        same = labels[r, None] == labels[None, :]
+        same[ar, r] = False
+        diff = labels[r, None] != labels[None, :]
+        sum_in += float(inter[same].sum()); pairs_in += int(same.sum())     # int(): np.int32 overflows past 2.1e9 pairs on Windows
+        sum_out += float(inter[diff].sum()); pairs_out += int(diff.sum())
         mask = inter > 0
         v, j = inter[mask], jac[mask]
         n_pairs += v.size; n_beta += int((j >= BETA).sum())
@@ -74,8 +79,8 @@ def side_stats(R: sp.csr_matrix, labels: np.ndarray, chunk: int = 400) -> dict:
         h_jac += np.histogram(j, np.linspace(0, 1, 101))[0]
         max_jac[s:e] = jac.max(axis=1)
     return {
-        "nodes": k,
-        "frac_pairs_with_any_overlap": n_pairs / (k * (k - 1)),
+        "nodes": k, "rows_evaluated": len(rows),
+        "frac_pairs_with_any_overlap": n_pairs / (len(rows) * (k - 1)),
         "mean_overlap_over_all_pairs_same_cluster": sum_in / max(pairs_in, 1),
         "mean_overlap_over_all_pairs_different_cluster": sum_out / max(pairs_out, 1),
         "pairs_jaccard_ge_beta": n_beta,
@@ -99,12 +104,16 @@ def main():
     ap.add_argument("--name", default="ml1m")
     ap.add_argument("--bins", type=int, default=300)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--max-rows", type=int, default=10000,
+                    help="co-occurrence stats use at most this many randomly sampled nodes per side "
+                         "(each compared against ALL nodes); ML-1M is below it, so exact there")
     ap.add_argument("--out", default=str(ROOT / "outputs" / "graph_viz"))
     args = ap.parse_args()
     out = Path(args.out) / args.name
     out.mkdir(parents=True, exist_ok=True)
 
-    ids = np.load(ROOT / "outputs" / "graclus" / f"{args.name}.ids.npz")
+    gdir = ROOT / "outputs" / "graclus"   # to_graclus.py writes <name>.ids.npz, prep_graclus.py writes <name>.map.npz
+    ids = np.load(next(p for p in (gdir / f"{args.name}.ids.npz", gdir / f"{args.name}.map.npz") if p.exists()))
     m, n = len(ids["user_ids"]), len(ids["item_ids"])
     R = read_graph(ROOT / "outputs" / "graclus" / f"{args.name}.graph", m)
     labels = np.loadtxt(args.part, dtype=int)
@@ -125,8 +134,10 @@ def main():
              "user_degree": {"mean": float(udeg.mean()), "median": float(np.median(udeg)), "max": float(udeg.max())},
              "item_degree": {"mean": float(ideg.mean()), "median": float(np.median(ideg)), "max": float(ideg.max())},
              "per_cluster": clusters}
-    print("user-user ..."); us = side_stats(R, ucl)
-    print("item-item ..."); its = side_stats(R.T.tocsr(), icl)
+    rng = np.random.default_rng(args.seed)
+    sample = lambda k: None if k <= args.max_rows else np.sort(rng.choice(k, args.max_rows, replace=False))  # noqa: E731
+    print("user-user ..."); us = side_stats(R, ucl, sample(m))
+    print("item-item ..."); its = side_stats(R.T.tocsr(), icl, sample(n))
     stats["user_user"] = {a: b for a, b in us.items() if not a.startswith("_")}
     stats["item_item"] = {a: b for a, b in its.items() if not a.startswith("_")}
     (out / "stats.json").write_text(json.dumps(stats, indent=2, default=float))

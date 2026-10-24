@@ -20,3 +20,5 @@ saved/
 .claude/
 
 mlflow.db
+
+outputs/

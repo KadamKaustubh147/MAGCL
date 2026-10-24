@@ -121,7 +121,8 @@ def main():
 
     outdir = Path(args.out) / args.tag
     outdir.mkdir(parents=True, exist_ok=True)
-    hparams, extra = load_json(str(ROOT / args.hparams)), load_json(args.extra)
+    hparams = load_json(str(ROOT / args.hparams)) if args.hparams else {}   # --hparams "" = none (e.g. LightGCN)
+    extra = load_json(args.extra)
     seeds = list(range(args.first_seed, args.first_seed + args.seeds))
 
     rows, failed = [], []

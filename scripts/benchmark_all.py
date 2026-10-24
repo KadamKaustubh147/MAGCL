@@ -9,8 +9,11 @@ This is a thin driver: for each dataset it calls scripts/benchmark_seeds.py (see
 resume behaviour, outputs and the seed/split note), so everything is resumable -- rerun the same command
 and finished seeds are skipped. Results land in outputs/benchmark/<prefix>-<dataset>/.
 
-Both datasets use the tuned lam1-4/theta from configs/best_ml1m_hparams.json (configs/magcl_ifashion.yaml
-already carries the same values as its defaults) and the dataset's own tau/gamma/alpha from its YAML.
+Each dataset uses its own tuned setting (tau/gamma/alpha come from the dataset's YAML):
+  ml1m      raw CL  (normalize_cl=false), lam1-4/theta from configs/best_ml1m_hparams.json
+  ifashion  normalized CL (normalize_cl=true), lam1-4/theta from configs/best_ifashion_normcl_hparams.json
+            (best of 15 trials, see tuned_hyperparameters_ifashion_normcl.txt)
+Pass --hparams FILE to force one hparams file (incl. normalize_cl, if set in it) on every dataset instead.
 """
 
 import argparse
@@ -21,8 +24,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATASETS = {
-    "ml1m": {"config": "configs/magcl.yaml", "label": "MovieLens-1M"},
-    "ifashion": {"config": "configs/magcl_ifashion.yaml", "label": "Alibaba-iFashion"},
+    "ml1m": {"config": "configs/magcl.yaml", "label": "MovieLens-1M",
+             "hparams": "configs/best_ml1m_hparams.json"},
+    "ifashion": {"config": "configs/magcl_ifashion.yaml", "label": "Alibaba-iFashion",
+                 "hparams": "configs/best_ifashion_normcl_hparams.json"},
 }
 
 
@@ -47,7 +52,7 @@ def main():
     ap.add_argument("--first-seed", type=int, default=2020)
     ap.add_argument("--prefix", default="magcl-baseline", help="result folders are <prefix>-<dataset>")
     ap.add_argument("--script", default="scripts/run.py")
-    ap.add_argument("--hparams", default="configs/best_ml1m_hparams.json")
+    ap.add_argument("--hparams", default=None, help="one hparams file for every dataset (default: each dataset's own)")
     ap.add_argument("--extra", default="{}", help="extra overrides (inline JSON or file) for both datasets")
     ap.add_argument("--out", default=str(ROOT / "outputs" / "benchmark"))
     ap.add_argument("--force", action="store_true")
@@ -66,7 +71,7 @@ def main():
                "--seeds", str(args.seeds), "--first-seed", str(args.first_seed),
                "--tag", f"{args.prefix}-{ds}", "--experiment", f"MAGCL-benchmark-{ds}",
                "--config", DATASETS[ds]["config"], "--script", args.script,
-               "--hparams", args.hparams, "--extra", args.extra, "--out", args.out]
+               "--hparams", args.hparams or DATASETS[ds]["hparams"], "--extra", args.extra, "--out", args.out]
         cmd += ["--force"] * args.force + ["--dry-run"] * args.dry_run
         if subprocess.run(cmd, cwd=ROOT).returncode != 0:   # keep going: iFashion should still run if ML-1M had a failed seed
             failed.append(ds)

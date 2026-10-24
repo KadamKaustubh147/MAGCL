@@ -1,0 +1,11 @@
+# Overlay: a literal random 80/10/10 split over ALL interactions, instead of RecBole's per-user split.
+# Use it after a dataset config:  --config configs/magcl.yaml configs/split80.yaml
+#
+# Why: with `group_by: user`, RecBole gives every user with >= 3 interactions at least one validation and one
+# test item, so on Alibaba-iFashion (median user: 4 interactions) train holds only 63.6% of the data, not 80%.
+# Side effect: users with few interactions can end up with no train edge at all (they are then isolated in the train graph).
+eval_args:
+    split: {RS: [0.8, 0.1, 0.1]}
+    order: RO
+    group_by: none
+    mode: full

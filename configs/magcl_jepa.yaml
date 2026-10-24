@@ -1,0 +1,15 @@
+# Overlay: the JEPA keys for MAGCL + JEPA (src/jepa_cf/magcl_jepa.py). Use it after a MAGCL config:
+#   --config configs/magcl.yaml configs/magcl_jepa.yaml
+# MAGCL's own hyperparameters (L, tau, gamma, lam1-4, theta, ...) come from the first config and the --override files.
+
+jepa_weight: 0.1     # lambda: 0 = plain MAGCL. MAGCL's BPR is a batch mean (~0.1-0.5), JEPA's raw loss is ~0.3-0.6
+mask_ratio: 0.2      # rho, share of a user's items hidden
+n_clusters: 64       # p; Graclus coarsens until <= p item clusters
+jepa_z: position     # mean | learnable | none | position
+
+# only read when jepa_z: position (see src/jepa_cf/cluster_position.py)
+pos_dim_m: 8
+pos_topk: 10
+pos_eps: 1.0e-3
+pos_source: pmi
+pos_control: none

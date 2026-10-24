@@ -1,0 +1,6 @@
+{
+    "graclus_mode": "replace",
+    "S_gr": 5,
+    "graclus_map": "outputs/graclus/Alibaba-iFashion_train.map.npz",
+    "graclus_part": "graclus1.2/Alibaba-iFashion_train.graph.part.64"
+}

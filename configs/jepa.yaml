@@ -1,0 +1,58 @@
+# First-version JEPA recommender on RecBole. Same protocol block as magcl.yaml (paper §5.1),
+# LightGCN backbone settings as in lightgcn.yaml (the JEPA class has no RecBole properties file,
+# so n_layers / reg_weight / require_pow must be given here).
+data_path: ./data/
+dataset: ml-1m_preprocessed_byrating
+
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+load_col:
+    inter: [user_id, item_id]
+
+seed: 2020
+gpu_id: 0
+use_gpu: true
+worker: 0
+
+embedding_size: 64
+train_batch_size: 4096
+# must exceed n_items, see the long comment in magcl.yaml (otherwise full-sort eval silently runs 1 user/step)
+eval_batch_size: 4096000
+learning_rate: 0.001
+epochs: 300
+eval_step: 1
+stopping_step: 10
+
+eval_args:
+    split: {RS: [0.8, 0.1, 0.1]}
+    order: RO
+    group_by: user
+    mode: full
+metrics: [Recall, NDCG]
+topk: [10, 20, 50]
+valid_metric: recall@20
+
+train_neg_sample_args:
+    distribution: uniform
+    sample_num: 1
+    dynamic: false
+
+# ---- LightGCN backbone ----
+n_layers: 3
+reg_weight: 1.0e-5
+require_pow: true
+
+# ---- JEPA (paper §3-4, ablation ids in brackets) ----
+jepa_weight: 1.0     # lambda in Eq 8                       [L1: 0.01 / 0.1 / 1]
+mask_ratio: 0.2      # rho, share of a user's items hidden  [R1: 0.1 / 0.2 / 0.3 / 0.5]
+n_clusters: 64       # p; Graclus coarsens until <= p       [P1: 16 ... 1024]
+jepa_z: learnable    # mean | learnable | none | position   [Z1]
+jepa_center_keys: true   # subtract the popularity-weighted mean item row from each block key (removes the shared direction)
+jepa_key_source: layer0  # layer0 (item rows, draft Eq 4) | context (hidden items' readout on the masked graph, draft Q3; the loss drifts up ~2x slower)
+
+# ---- jepa_z: position (only read in that mode; see src/jepa_cf/cluster_position.py) ----
+pos_dim_m: 8         # coordinates per cluster, 1 <= m <= p-1  [2 / 4 / 8 / 16 / 32]
+pos_topk: 10         # neighbours kept per cluster row          [5 / 10 / 20]
+pos_eps: 1.0e-3      # safety links that keep the cluster graph connected
+pos_source: pmi      # pmi | raw
+pos_control: none    # none | shuffled (rows permuted among clusters) | random (fixed Gaussian)
