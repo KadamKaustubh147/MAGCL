@@ -48,7 +48,7 @@ def test_six_terms_and_gradients():
     assert model.E0.grad.abs().sum() > 0 and model.predictor[0].weight.grad.abs().sum() > 0
 
     means = model.pop_loss_means()
-    assert set(means) == {"bpr", "cl", "layer", "unif", "reg", "jepa", "jepa_weighted"}
+    assert set(means) == {"bpr", "cl", "layer", "unif", "reg", "jepa", "jepa_weighted", "jepa_const"}
     assert abs(means["jepa_weighted"] - losses[5].item()) < 1e-6 and model.pop_loss_means()["bpr"] == 0
 
 
@@ -62,3 +62,21 @@ def test_first_five_terms_are_plain_magcl():
     batch = next(iter(train)).to(both.device)
     ref, got = plain.calculate_loss(batch), both.calculate_loss(batch)
     assert all(torch.allclose(a, b, atol=1e-6) for a, b in zip(ref, got[:5]))
+
+
+def test_ema_target_on_magcl():
+    """jepa_ema on the MAGCL backbone: the EMA copy follows E0 (the single table) and the JEPA term still moves E0 and the predictor."""
+    config, train = _data(jepa_ema=0.9)
+    model = MAGCLJEPA(config, train.dataset).to(config["device"])
+    model.train()
+    batch = next(iter(train)).to(model.device)
+    model.calculate_loss(batch)
+    first = model._ema_table.clone()
+    with torch.no_grad():
+        model.E0.add_(1.0)
+    live = model.E0.detach().clone()
+    model.zero_grad()
+    losses = model.calculate_loss(batch)
+    assert torch.allclose(model._ema_table, 0.9 * first + 0.1 * live, atol=1e-6) and losses[5] > 0
+    losses[5].backward()
+    assert model.E0.grad.abs().sum() > 0 and model.predictor[0].weight.grad.abs().sum() > 0

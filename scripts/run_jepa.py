@@ -20,7 +20,7 @@ from recbole.data import create_dataset, data_preparation
 from recbole.trainer import Trainer
 from recbole.utils import init_seed
 
-_HPARAM_KEYS = ["n_layers", "reg_weight", "embedding_size", "jepa_weight", "mask_ratio", "n_clusters", "jepa_z", "jepa_center_keys", "jepa_key_source",
+_HPARAM_KEYS = ["n_layers", "reg_weight", "embedding_size", "jepa_weight", "mask_ratio", "n_clusters", "jepa_z", "jepa_center_keys", "jepa_key_source", "jepa_ema",
                 "pos_dim_m", "pos_topk", "pos_eps", "pos_source", "pos_control"]
 
 

@@ -125,6 +125,36 @@ def test_context_key_source():
         raise AssertionError("bad jepa_key_source was accepted")
 
 
+def test_ema_target_and_constant_baseline():
+    """jepa_ema=m: the keys come from E_ema <- m*E_ema + (1-m)*E0 (first call = a copy), updated once per jepa_loss call, for
+    both key sources; gradients still flow to the predictor and E0 only; jepa_const (best constant predictor) is logged."""
+    for source in ("layer0", "context"):
+        model, train_data = _build("mean", jepa_ema=0.9, jepa_key_source=source)
+        model.train()
+        batch = next(iter(train_data)).to(model.device)
+        model.calculate_loss(batch)
+        first = model._ema_table.clone()
+        assert torch.allclose(first, model.get_ego_embeddings().detach())
+        with torch.no_grad():
+            model.item_embedding.weight.add_(1.0)               # BPR moves the live table; the target must lag behind
+        live = model.get_ego_embeddings().detach().clone()
+        losses = model.calculate_loss(batch)
+        assert torch.allclose(model._ema_table, 0.9 * first + 0.1 * live, atol=1e-6), source
+        assert not model._ema_table.requires_grad and all(torch.isfinite(v) for v in losses) and losses[2] > 0
+        sum(losses).backward()
+        assert model.predictor[0].weight.grad.abs().sum() > 0
+        means = model.pop_loss_means()
+        assert 0 <= means["jepa_const"] <= 4 and model.pop_loss_means()["jepa_const"] == 0   # unit vectors: D in [0, 4]; reset after pop
+    off, _ = _build("mean")
+    assert off.ema == 0 and off._ema_table is None
+    for bad in (1.0, -0.1):
+        try:
+            _build("mean", jepa_ema=bad)
+        except ValueError:
+            continue
+        raise AssertionError(f"jepa_ema={bad} was accepted")
+
+
 if __name__ == "__main__":
     test_masks_and_blocks()
     test_jepa_trains_without_nan()

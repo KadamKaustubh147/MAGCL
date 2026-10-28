@@ -49,6 +49,7 @@ n_clusters: 64       # p; Graclus coarsens until <= p       [P1: 16 ... 1024]
 jepa_z: learnable    # mean | learnable | none | position   [Z1]
 jepa_center_keys: true   # subtract the popularity-weighted mean item row from each block key (removes the shared direction)
 jepa_key_source: layer0  # layer0 (item rows, draft Eq 4) | context (hidden items' readout on the masked graph, draft Q3; the loss drifts up ~2x slower)
+jepa_ema: 0          # 0 = keys from the live table; m in (0,1) = keys from an EMA copy, E_ema <- m*E_ema + (1-m)*E0 per step  [0 / 0.99 / 0.999 / 0.9999]
 
 # ---- jepa_z: position (only read in that mode; see src/jepa_cf/cluster_position.py) ----
 pos_dim_m: 8         # coordinates per cluster, 1 <= m <= p-1  [2 / 4 / 8 / 16 / 32]

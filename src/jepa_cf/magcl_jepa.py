@@ -49,6 +49,7 @@ class MAGCLJEPA(JEPAMixin, MAGCL):
         """Mean per-step value of each loss part since the last call (one epoch), then reset. 'jepa' is the raw
         distance D (comparable across lambda); the parts before it are already weighted as in MAGCL's Eq 30."""
         means = dict(zip(self._PARTS, (self._parts / max(self._steps, 1)).tolist()))
+        means["jepa_const"] = self._pop_const(self._steps)   # D of a constant predictor: the "no information" reference for 'jepa'
         self._parts.zero_()
         self._steps = 0
         means["jepa_weighted"] = self.lam * means["jepa"]

@@ -86,6 +86,16 @@ class JEPAMixin:
         self.key_source = config["jepa_key_source"] if "jepa_key_source" in config else "layer0"
         if self.key_source not in ("layer0", "context"):
             raise ValueError(f"jepa_key_source must be layer0|context, got {self.key_source!r}")
+        # EMA target (0 = off, the old behaviour). The keys normally come from the live layer-0 table that BPR is training, so
+        # they drift as BPR spreads the item rows apart and the JEPA loss climbs while recall improves. With jepa_ema = m the
+        # keys come from E_ema <- m * E_ema + (1 - m) * E0, updated once per training step (m = 0.99 lags ~100 steps, 0.999
+        # ~1000; an ML-1M epoch is ~200 steps). Works with both key sources; the table is built lazily on the model's device.
+        self.ema = (config["jepa_ema"] if "jepa_ema" in config else 0.0) or 0.0
+        if not 0.0 <= self.ema < 1.0:
+            raise ValueError(f"jepa_ema must be in [0, 1), got {self.ema!r}")
+        self._ema_table = None
+        # running sum of the constant-predictor loss (see jepa_loss); the host divides by its own step count in pop_loss_means()
+        self._const_sum = 0.0
         self.z_mode = config["jepa_z"]
         if self.z_mode not in ("mean", "learnable", "none", "position"):
             raise ValueError(f"jepa_z must be mean|learnable|none|position, got {self.z_mode!r}")
@@ -159,9 +169,9 @@ class JEPAMixin:
             "blocks_per_user": torch.bincount(block_user, minlength=self.n_users),  # |K_u|
         }
 
-    def _context_embeddings(self, adj):
-        """Same LightGCN readout as forward(), but on G_ctx."""
-        x = self.get_ego_embeddings()
+    def _context_embeddings(self, adj, x=None):
+        """Same LightGCN readout as forward(), but on G_ctx (of the live layer-0 table unless x is given)."""
+        x = self.get_ego_embeddings() if x is None else x
         layers = [x]
         for _ in range(self.n_layers):
             x = torch.sparse.mm(adj, x)
@@ -180,7 +190,22 @@ class JEPAMixin:
         table = self.item_embedding.weight if table is None else table
         return (self.item_w @ table.detach()).squeeze(0)
 
+    def _update_ema(self):
+        live = self.get_ego_embeddings().detach()
+        if self._ema_table is None:
+            self._ema_table = live.clone()
+        else:
+            self._ema_table.mul_(self.ema).add_(live, alpha=1 - self.ema)
+
+    def _pop_const(self, steps):
+        """Mean per-step constant-predictor loss since the last call (the host passes its step count), then reset."""
+        value = float(self._const_sum) / max(steps, 1)
+        self._const_sum = 0.0
+        return value
+
     def jepa_loss(self, users):
+        if self.ema:
+            self._update_ema()
         if self._ctx is None:
             self._resample()
         c = self._ctx
@@ -192,7 +217,12 @@ class JEPAMixin:
 
         blocks, inv = torch.unique(c["edge_block"][sel], return_inverse=True)
         E = self._context_embeddings(c["adj"])                   # readout on G_ctx; s_x^u = E[u]
-        table = E[self.n_users:] if self.key_source == "context" else self.item_embedding.weight
+        if self.ema:                                             # keys from the slow EMA copy of the layer-0 table
+            with torch.no_grad():
+                ema_E = self._context_embeddings(c["adj"], self._ema_table) if self.key_source == "context" else self._ema_table
+            table = ema_E[self.n_users:]
+        else:
+            table = E[self.n_users:] if self.key_source == "context" else self.item_embedding.weight
         rows = table[c["hi"][sel]].detach()                      # sg(e_i): layer-0 rows (Eq 4) or their G_ctx readout
         key = torch.zeros(len(blocks), rows.shape[1], device=self.device).index_add_(0, inv, rows)
         key = key / torch.bincount(inv).unsqueeze(1)             # Eq 4: block mean
@@ -206,9 +236,16 @@ class JEPAMixin:
         elif self.z_mode != "none":
             h = h + self.W_z(self._z(c["block_cluster"][blocks]))
         pred = self.predictor(h)
-        dist = (F.normalize(pred, dim=1) - F.normalize(key, dim=1)).pow(2).sum(dim=1)  # D, Eq 7
+        key_hat = F.normalize(key, dim=1)
+        dist = (F.normalize(pred, dim=1) - key_hat).pow(2).sum(dim=1)  # D, Eq 7
         # mean over a user's blocks, then over the batch's users
-        return (dist / c["blocks_per_user"][bu]).sum() / torch.unique(bu).numel()
+        n_batch_users = torch.unique(bu).numel()
+        loss = (dist / c["blocks_per_user"][bu]).sum() / n_batch_users
+        with torch.no_grad():  # reference: D of the best constant unit vector for this batch's keys (ignores user and cluster)
+            const = F.normalize(key_hat.mean(dim=0, keepdim=True), dim=1)
+            dist_const = (const - key_hat).pow(2).sum(dim=1)
+            self._const_sum = self._const_sum + (dist_const / c["blocks_per_user"][bu]).sum() / n_batch_users
+        return loss
 
 
 class JEPA(JEPAMixin, LightGCN):
@@ -243,6 +280,7 @@ class JEPA(JEPAMixin, LightGCN):
         """Mean per-step value of each loss part since the last call (one epoch), then reset.
         'jepa' is the raw distance D (comparable across lambda), 'jepa_weighted' is what enters the total."""
         bpr, reg, jepa = (self._parts / max(self._steps, 1)).tolist()
+        const = self._pop_const(self._steps)
         self._parts.zero_()
         self._steps = 0
-        return {"bpr": bpr, "reg": reg, "jepa": jepa, "jepa_weighted": self.lam * jepa}
+        return {"bpr": bpr, "reg": reg, "jepa": jepa, "jepa_weighted": self.lam * jepa, "jepa_const": const}

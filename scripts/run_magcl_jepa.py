@@ -27,7 +27,7 @@ from recbole.utils import init_seed
 
 _HPARAM_KEYS = [
     "L", "tau", "gamma", "alpha", "theta", "beta", "S", "lam1", "lam2", "lam3", "lam4", "normalize_cl", "embedding_size",
-    "jepa_weight", "mask_ratio", "n_clusters", "jepa_z", "pos_dim_m", "pos_topk", "pos_eps", "pos_source", "pos_control",
+    "jepa_weight", "mask_ratio", "n_clusters", "jepa_z", "jepa_ema", "jepa_center_keys", "jepa_key_source", "pos_dim_m", "pos_topk", "pos_eps", "pos_source", "pos_control",
 ]
 _GRACLUS_DEFAULTS = {"graclus_mode": "off", "S_gr": None, "graclus_part": None, "graclus_map": None}
 
