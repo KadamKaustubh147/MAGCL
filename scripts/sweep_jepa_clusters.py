@@ -144,7 +144,7 @@ def main():
     for m, lib in skipped.items():
         print(f"SKIPPING {m}: `{lib}` is not installed in this environment")
     # (tag, label, overrides). Reference first, so a crash later still leaves the baseline.
-    plan = [] if args.no_reference else [("no-jepa", "no-jepa", {"jepa_weight": 0})]
+    plan = [] if args.no_reference else [("no-jepa", "no-jepa", {"jepa_weight": 0, "jepa_z": "none", "jepa_cluster": "random"})]   # plain MAGCL; no clustering/positions needed
     plan += [(f"{m}-p{p}", m, {"jepa_cluster": m, "n_clusters": p}) for m in methods if m not in skipped for p in ps]
 
     results, failed = {}, []

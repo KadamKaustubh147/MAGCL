@@ -64,3 +64,36 @@ def test_random_is_seeded():
 def test_unknown_method(two_communities):
     with pytest.raises(ValueError, match="jepa_cluster"):
         ic.build_item_clusters("kmeans", two_communities, 4, seed=0)
+
+
+@pytest.fixture
+def fragmented():
+    """The iFashion train graph in miniature: one big connected blob (items 0-39), 30 single-user fragments on items
+    40-69 (disjoint pieces), and items 70-74 that never appear. This is what made Graclus return ~10k clusters on the lab PC."""
+    rng = np.random.default_rng(1)
+    R = np.zeros((60 + 30, 75), dtype=np.float32)
+    R[:60, :40] = rng.random((60, 40)) < 0.25
+    R[:20, :40] = 1                                          # guarantee the blob is connected
+    for k in range(30):
+        R[60 + k, 40 + k] = 1
+        if k % 2 == 0:
+            R[60 + k, 40 + (k + 1) % 30] = 1                 # a few 2-item fragments (may chain: still tiny)
+    return sp.csr_matrix(R)
+
+
+@pytest.mark.parametrize("method", ["graclus", "metis", "spectral"])
+def test_fragmented_graph_keeps_p_and_a_clean_giant(method, fragmented):
+    if method == "metis":
+        pytest.importorskip("pymetis")
+    p = 4
+    assign = ic.build_item_clusters(method, fragmented, p, seed=0).numpy()
+    assert assign.max() + 1 <= p                                   # the bug: ~one cluster per fragment
+    giant, frag = np.arange(75) < 40, (np.arange(75) >= 40) & (np.arange(75) < 70)
+    assert len(np.unique(assign[giant])) >= 2                      # the blob really is split, not collapsed to one cluster
+    assert not set(assign[giant]) & set(assign[frag])              # fragments never share a cluster with real clusters
+    assert len(np.unique(assign[frag])) == 1                       # ... they share one residual cluster
+
+    # the call that crashed ("no positive co-occurrence weight between any two clusters") must now work
+    from jepa_cf.cluster_position import compute_cluster_positions
+    u, i = fragmented.nonzero()
+    compute_cluster_positions(u, i, assign, int(assign.max()) + 1, m=2, topk=3, eps=1e-3, source="pmi")

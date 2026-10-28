@@ -10,11 +10,19 @@ of contiguous cluster ids 0..p-1 with p <= n_clusters, so they are drop-in repla
   random      uniformly random clusters                                         (control: no structure at all)
 
 The two controls matter: if `random` scores like `graclus`, the clustering is not what JEPA's gain depends on.
+The three structure-aware methods (graclus, metis, spectral) cluster only the GIANT connected component of the item graph
+into p-1 parts; every other item that has a train edge (tiny disconnected pieces) shares one residual cluster, and items
+with no train edge at all sit in cluster 0 (they never appear in a block). Without this, the held-out 20% of edges shatters
+iFashion's item graph into thousands of pieces (99.6% -> ~95% in the giant one), Graclus cannot merge across pieces so it
+shrinks the giant to ONE cluster and stalls with ~10k singleton clusters, and no cluster co-occurs with any other. Assumes
+one dominant component, which holds for both datasets here; a second big component would be lumped into the residual.
+
 Cluster COUNTS differ by method (graclus lands below n_clusters, the others hit it), so compare at the p each run logs.
 """
 
 import numpy as np
 import scipy.sparse as sp
+from scipy.sparse.csgraph import connected_components
 
 METHODS = ("graclus", "metis", "spectral", "popularity", "random")
 
@@ -38,6 +46,23 @@ def _item_graph(R) -> sp.csr_matrix:
     off = C.row != C.col
     w = C.data[off] / np.sqrt(deg[C.row[off]] * deg[C.col[off]])
     return sp.csr_matrix((w, (C.row[off], C.col[off])), shape=C.shape)
+
+
+def cluster_giant_component(R, p: int, part_fn) -> np.ndarray:
+    """part_fn(R_giant, k) -> k-way item labels, applied to the giant connected component only (see module doc)."""
+    R = _binary(R)
+    n_users, n_items = R.shape
+    _, lab = connected_components(sp.bmat([[None, R], [R.T, None]], format="csr"), directed=False)   # users and items as nodes
+    item_lab = lab[n_users:]
+    giant = item_lab == np.bincount(item_lab[np.asarray(R.sum(axis=0)).ravel() > 0]).argmax()
+    rest = ~giant & (np.asarray(R.sum(axis=0)).ravel() > 0)
+    k = min(p - 1 if rest.any() else p, int(giant.sum()))
+    assign = np.zeros(n_items, dtype=np.int64)                       # never-seen items stay in cluster 0
+    idx = np.flatnonzero(giant)
+    assign[idx] = part_fn(R.tocsc()[:, idx].tocsr(), k) if k >= 2 else 0
+    if rest.any():
+        assign[rest] = assign.max() + 1
+    return _compact(assign)
 
 
 def metis_item_clusters(R, p: int) -> np.ndarray:
@@ -85,20 +110,23 @@ def random_item_clusters(n_items: int, p: int, seed: int) -> np.ndarray:
     return _compact(np.random.default_rng(seed).integers(0, p, n_items))
 
 
+def _graclus(R, k: int) -> np.ndarray:
+    from jepa_cf.jepa import graclus_item_clusters   # lazy: jepa.py imports this module
+    return graclus_item_clusters(R, k).numpy()
+
+
 def build_item_clusters(method: str, R, p: int, seed: int):
     """-> torch.LongTensor (n_items,) of cluster ids. R = TRAIN users x items (scipy sparse)."""
     import torch
 
     if method not in METHODS:
         raise ValueError(f"jepa_cluster must be one of {METHODS}, got {method!r}")
-    if method == "graclus":
-        from jepa_cf.jepa import graclus_item_clusters   # lazy: jepa.py imports this module
-        return graclus_item_clusters(R, p).long()
     if p < 2:
         return torch.zeros(R.shape[1], dtype=torch.long)
     assign = {
-        "metis": lambda: metis_item_clusters(R, p),
-        "spectral": lambda: spectral_item_clusters(R, p, seed),
+        "graclus": lambda: cluster_giant_component(R, p, lambda Rg, k: _graclus(Rg, k)),
+        "metis": lambda: cluster_giant_component(R, p, metis_item_clusters),
+        "spectral": lambda: cluster_giant_component(R, p, lambda Rg, k: spectral_item_clusters(Rg, k, seed)),
         "popularity": lambda: popularity_item_clusters(R, p),
         "random": lambda: random_item_clusters(R.shape[1], p, seed),
     }[method]()

@@ -14,7 +14,8 @@
 #   CLUSTER_ARGS=""          extra flags for the clusters stage, e.g. CLUSTER_ARGS="--n-clusters 64,256 --seeds 3"
 #   DRY_RUN=1                print the commands, run nothing
 #
-# Unattended:  nohup bash scripts/run_lab.sh > outputs/lab/all.log 2>&1 &
+# Unattended:  mkdir -p outputs/lab && nohup bash scripts/run_lab.sh > outputs/lab/all.log 2>&1 &
+#              (the mkdir must come first: the shell opens the log file before this script gets to create the folder)
 #
 # Every benchmark is resumable (finished seeds are skipped), so after a crash or Ctrl-C just rerun the same
 # command. One stage failing does not stop the next one; failures are listed at the end (exit code 1).
