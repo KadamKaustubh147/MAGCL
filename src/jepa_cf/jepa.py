@@ -14,7 +14,8 @@ z is the only conditioning signal (config `jepa_z`):
 Item clusters (§3): multi-level Graclus (torch_cluster) on the item-item graph C_bar = R^T R
 normalised by sqrt(C_ii C_jj), train split only. torch_cluster's graclus is a single-level matching
 (clusters of <= 2 items), so we contract and repeat until <= `n_clusters` clusters remain; the actual
-count therefore lands in (n_clusters/2, n_clusters].
+count therefore lands in (n_clusters/2, n_clusters]. Config `jepa_cluster` swaps the method (metis, spectral, ...;
+see src/jepa_cf/item_clusters.py); the default `graclus` is the behaviour described here.
 
 The JEPA part lives in JEPAMixin so it can sit on another backbone: JEPA below = LightGCN + BPR + JEPA,
 src/jepa_cf/magcl_jepa.py = MAGCL + JEPA.
@@ -32,6 +33,7 @@ import torch.nn.functional as F
 from recbole.model.general_recommender import LightGCN
 
 from jepa_cf.cluster_position import PositionHint, apply_control, compute_cluster_positions
+from jepa_cf.item_clusters import build_item_clusters
 from magcl import compat  # noqa: F401  (scipy patch; must load before recbole touches scipy)
 
 POSITION_CACHE = Path(__file__).resolve().parents[2] / "outputs" / "cluster_position"
@@ -115,10 +117,11 @@ class JEPAMixin:
         item_deg = torch.bincount(self.edge_i, minlength=self.n_items).float()
         self.item_w = (item_deg / item_deg.sum()).unsqueeze(0)  # (1, n_items): hidden items are samples of train edges
 
-        self.item_cluster = graclus_item_clusters(R, config["n_clusters"]).to(dev)
+        self.cluster_method = config["jepa_cluster"] if "jepa_cluster" in config else "graclus"
+        self.item_cluster = build_item_clusters(self.cluster_method, R, config["n_clusters"], config["seed"]).to(dev)
         self.p = int(self.item_cluster.max()) + 1
         self.cluster_size = torch.bincount(self.item_cluster, minlength=self.p).clamp(min=1).unsqueeze(1).float()
-        self.logger.info(f"JEPA: {self.p} Graclus item clusters (asked <= {config['n_clusters']}), z={self.z_mode}, "
+        self.logger.info(f"JEPA: {self.p} {self.cluster_method} item clusters (asked <= {config['n_clusters']}), z={self.z_mode}, "
                          f"rho={self.rho}, lambda={self.lam}, center_keys={self.center_keys}")
 
         d = self.latent_dim

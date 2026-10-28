@@ -1,0 +1,52 @@
+# AdaMCL (official hyperparameters for ML-1M: AdaMCL/properties/ml-1m.yaml + overall.yaml), run under the
+# SAME protocol block as configs/lightgcn.yaml / magcl.yaml so the 10-seed numbers are comparable.
+# Only deviation from the authors' overall.yaml: train_batch_size 4096 (theirs 2048), to match LightGCN/MAGCL here.
+data_path: ./data/
+dataset: ml-1m_preprocessed_byrating
+
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+load_col:
+    inter: [user_id, item_id]
+
+seed: 2020
+gpu_id: 0
+use_gpu: true
+worker: 0
+
+embedding_size: 64
+train_batch_size: 4096
+# Must exceed n_items (3629) or RecBole floors to 1 user per eval step -- see configs/magcl.yaml.
+eval_batch_size: 4096000
+epochs: 300
+eval_step: 1
+stopping_step: 10
+
+eval_args:
+    split: {RS: [0.8, 0.1, 0.1]}
+    order: RO
+    group_by: user
+    mode: full
+metrics: [Recall, NDCG]
+topk: [10, 20, 50]
+valid_metric: recall@20
+
+train_neg_sample_args:
+    distribution: uniform
+    sample_num: 1
+    dynamic: false
+
+learning_rate: 0.001
+n_layers: 3
+reg_weight: 1.0e-4
+hyper_layer: 2      # which propagation layer's output is the "x" view in the multi-view InfoNCE
+TopK: 10            # neighbours per node in the user-user / item-item Jaccard graph
+user_threshold: 0.8
+item_threshold: 0.8
+ssl_reg: 1.0e-7
+ssl_temp: 0.1
+info_reg: 1.0e-6
+alpha: 0.2
+gamma: 1.05
+# Top-K graph is built from the TRAIN split, so it is cached per seed (see AdaMCL/AdaMCL.py). null = no cache.
+adamcl_cache_dir: ./outputs/adamcl_cache

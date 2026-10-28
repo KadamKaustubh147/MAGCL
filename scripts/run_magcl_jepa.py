@@ -27,7 +27,7 @@ from recbole.utils import init_seed
 
 _HPARAM_KEYS = [
     "L", "tau", "gamma", "alpha", "theta", "beta", "S", "lam1", "lam2", "lam3", "lam4", "normalize_cl", "embedding_size",
-    "jepa_weight", "mask_ratio", "n_clusters", "jepa_z", "jepa_ema", "jepa_center_keys", "jepa_key_source", "pos_dim_m", "pos_topk", "pos_eps", "pos_source", "pos_control",
+    "jepa_weight", "mask_ratio", "n_clusters", "jepa_cluster", "jepa_z", "jepa_ema", "jepa_center_keys", "jepa_key_source", "pos_dim_m", "pos_topk", "pos_eps", "pos_source", "pos_control",
 ]
 _GRACLUS_DEFAULTS = {"graclus_mode": "off", "S_gr": None, "graclus_part": None, "graclus_map": None}
 
@@ -59,9 +59,16 @@ def main():
     model = MAGCLJEPA(config, train_data.dataset).to(config["device"])
     trainer = Trainer(config, model)
 
+    # the model's own logger.info for this is silent (no init_logger here), and the count differs by method (graclus lands
+    # below n_clusters, the others hit it), so state it explicitly: scripts/sweep_jepa_clusters.py parses this line
+    sizes = model.cluster_size.flatten()
+    print(f"item clusters: method={model.cluster_method} p={model.p} "
+          f"size min/median/max={int(sizes.min())}/{int(sizes.median())}/{int(sizes.max())}", flush=True)
+
     mlflow.set_experiment(args.experiment or f"MAGCL-JEPA-{config['dataset']}")
     with mlflow.start_run(run_name=args.run_name):
         mlflow.log_params({k: config[k] for k in _HPARAM_KEYS})
+        mlflow.log_param("n_item_clusters", model.p)
         mlflow.log_params({k: (config[k] if k in config else d) for k, d in _GRACLUS_DEFAULTS.items()})
         mlflow.log_params(overrides)
 

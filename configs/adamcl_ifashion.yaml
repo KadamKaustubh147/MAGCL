@@ -1,0 +1,51 @@
+# AdaMCL on Alibaba-iFashion. Hyperparameters = the authors' alibaba.yaml (their Alibaba is this same dataset family);
+# protocol identical to configs/lightgcn_ifashion.yaml. NOTE: building the user-user Jaccard graph on ~300k users
+# is slow and memory hungry (once per seed) -- run ML-1M first.
+data_path: ./data/
+dataset: Alibaba-iFashion
+
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+load_col:
+    inter: [user_id, item_id]
+
+seed: 2020
+gpu_id: 0
+use_gpu: true
+worker: 0
+
+embedding_size: 64
+train_batch_size: 4096
+# Must exceed n_items (81615) or RecBole floors to 1 user per eval step -- see configs/magcl_ifashion.yaml.
+eval_batch_size: 40000000
+epochs: 300
+eval_step: 1
+stopping_step: 10
+
+eval_args:
+    split: {RS: [0.8, 0.1, 0.1]}
+    order: RO
+    group_by: user
+    mode: full
+metrics: [Recall, NDCG]
+topk: [10, 20, 50]
+valid_metric: recall@20
+
+train_neg_sample_args:
+    distribution: uniform
+    sample_num: 1
+    dynamic: false
+
+learning_rate: 0.001
+n_layers: 3
+reg_weight: 1.0e-4
+hyper_layer: 2
+TopK: 5
+user_threshold: 1       # > any Jaccard value, so every user keeps exactly its top-K
+item_threshold: 0.8
+ssl_reg: 1.0e-6
+ssl_temp: 0.2
+info_reg: 1.0e-6
+alpha: 1
+gamma: 0.1
+adamcl_cache_dir: ./outputs/adamcl_cache

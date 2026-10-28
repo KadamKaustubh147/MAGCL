@@ -31,6 +31,16 @@ requires-python = "==3.12.*"
 #                 takes the default PyPI torch 2.6.0 wheel (CUDA-enabled, with
 #                 the nvidia-* packages as normal dependencies).
 #
+#   torch-geometric  Needed by RecBole-GNN (SimGCL baseline). RecBole-GNN itself is NOT
+#                 on PyPI and has no setup.py, so its `recbole_gnn` package is vendored in
+#                 src/recbole_gnn (picked up through the editable install like jepa_cf).
+#                 Its README pins recbole==1.1.1, but it runs fine on 1.2.0 (checked);
+#                 do not "fix" the pin. torch_sparse is optional (see src/recbole_gnn/model/layers.py).
+#
+#   pymetis       METIS item clustering for JEPA (jepa_cluster: metis, src/jepa_cf/item_clusters.py).
+#                 PyPI ships Linux/macOS wheels only; on Windows it would need a C compiler, so it is
+#                 skipped there and the metis option fails with a clear message (the sweep script skips it).
+#
 #   kmeans_pytorch  Not declared as a RecBole dependency, but
 #                 recbole.model.general_recommender's __init__.py eagerly
 #                 imports every model in the package (including LDiffRec,
@@ -42,6 +52,8 @@ dependencies = [
     "pandas==2.2.3",
     "torch==2.6.0",
     "recbole==1.2.0",
+    "torch-geometric>=2.6",
+    "pymetis>=2025.1; sys_platform != 'win32'",
     "kmeans-pytorch>=0.3",
     "mlflow>=2.19",
     "ray[tune]>=2.40",

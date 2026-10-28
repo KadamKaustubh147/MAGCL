@@ -4,7 +4,9 @@
 
 jepa_weight: 0.1     # lambda: 0 = plain MAGCL. MAGCL's BPR is a batch mean (~0.1-0.5), JEPA's raw loss is ~0.3-0.6
 mask_ratio: 0.2      # rho, share of a user's items hidden
-n_clusters: 64       # p; Graclus coarsens until <= p item clusters
+n_clusters: 64       # p; Graclus coarsens until <= p item clusters (the other methods return exactly p)
+jepa_cluster: graclus  # graclus | metis | spectral | popularity | random -- see src/jepa_cf/item_clusters.py;
+                       # scripts/sweep_jepa_clusters.py runs them all
 jepa_z: position     # mean | learnable | none | position
 jepa_ema: 0          # 0 = keys from the live table; m in (0,1) = keys from an EMA copy (see configs/jepa.yaml)
 
